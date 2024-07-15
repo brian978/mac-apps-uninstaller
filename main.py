@@ -26,7 +26,7 @@ def main():
             print(f"Relative identifier: {app_model.relative_identifier}")
             print("Related files found:")
             for file in app_model.related_files:
-                print(file)
+                print(f"rm -rfv \"{file}\"")
         else:
             print("Failed to retrieve bundle identifier.")
     else:
