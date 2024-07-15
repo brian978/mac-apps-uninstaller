@@ -3,9 +3,10 @@ class AppModel:
     identifier: str
     related_files: list
 
-    def __init__(self, name: str, identifier: str):
+    def __init__(self, name: str, identifier: str, path: str):
         self.name = name
         self.identifier = identifier
+        self.path = path
         self.relative_identifier = self.__extract_relative_identifier(identifier)
 
     def __extract_relative_identifier(self, identifier: str):

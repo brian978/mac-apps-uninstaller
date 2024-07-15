@@ -1,36 +1,5 @@
 import os
 import subprocess
-from typing import List
-
-from models.AppModel import AppModel
-
-
-def find_app_related_files(app_model: AppModel) -> List[str]:
-    """
-    :type app_model: AppModel
-    """
-    search_paths = [
-        os.path.expanduser('~/Library/Application Support/'),
-        os.path.expanduser('~/Library/Caches/'),
-        os.path.expanduser('~/Library/Preferences/'),
-        os.path.expanduser('~/Library/Logs/'),
-        '/Library/Application Support/',
-        '/Library/Caches/',
-        '/Library/Preferences/',
-        '/Library/Logs/',
-        '/'
-    ]
-
-    related_files = []
-
-    for path in search_paths:
-        for root, dirs, files in os.walk(path):
-            dirs[:] = [d for d in dirs if d != 'System']
-            for file in files:
-                if app_model.identifier in file or app_model.relative_identifier in file:
-                    related_files.append(os.path.join(root, file))
-
-    return related_files
 
 
 def list_apps(applications_folder):
