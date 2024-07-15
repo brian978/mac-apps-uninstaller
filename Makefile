@@ -1,14 +1,15 @@
+SCRIPT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
 default:
 	echo "Running main.py with venv..."
-	source "${PWD}/.venv/bin/activate"
-	python3 main.py
+	source "${SCRIPT_DIR}/.venv/bin/activate"
+	python3 "${SCRIPT_DIR}/main.py"
 
 install:
 	python3 -m venv .venv
-	source "${PWD}/.venv/bin/activate"
-	pip3 install -r requirements.txt
+	source "${SCRIPT_DIR}/.venv/bin/activate"
+	pip3 install -r "${SCRIPT_DIR}/requirements.txt"
 
 upgrade:
-	source "${PWD}/.venv/bin/activate"
+	source "${SCRIPT_DIR}/.venv/bin/activate"
 	pip3 install --upgrade pip
