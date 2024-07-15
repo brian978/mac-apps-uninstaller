@@ -24,6 +24,8 @@ def main():
         print("Related files found:")
         for file in selected_app.related_files:
             print(f"rm -rfv \"{file}\"")
+
+        print("\nThe related files were NOT removed! You need to run the commands manually\n")
     else:
         print("Invalid choice.")
 
