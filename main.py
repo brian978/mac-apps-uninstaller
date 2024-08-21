@@ -23,7 +23,7 @@ def main():
         print(f"Relative identifier: {selected_app.relative_identifier}")
         print("Related files found:")
         for file in selected_app.related_files:
-            print(f"rm -rfv \"{file}\"")
+            print(f"sudo rm -rfv \"{file}\"")
 
         print("\nThe related files were NOT removed! You need to run the commands manually\n")
     else:
