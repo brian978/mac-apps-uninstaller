@@ -34,7 +34,8 @@ build: build-deps
 	CODESIGN_IDENTITY="-" python3 setup.py py2app --no-chdir || \
 	(echo "Build completed but with code signing issues - attempting to fix..." && \
 	codesign --force --deep --sign - "dist/Mac Apps Uninstaller.app" && \
-	echo "Build completed successfully with ad-hoc signing")
+	echo "Build completed successfully with ad-hoc signing") && \
+	open "dist/Mac Apps Uninstaller.app"
 
 # Build the application in development mode (faster, for testing)
 dev-build: build-deps icon

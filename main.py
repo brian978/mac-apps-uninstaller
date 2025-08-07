@@ -65,91 +65,6 @@ class FileLookup(QThread):
             self.signals.error.emit(str(e))
 
 
-class UninstallDialog(QDialog):
-    def __init__(self, app_name, related_files, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle(f"Uninstall {app_name}")
-        self.setMinimumWidth(600)
-        self.setMinimumHeight(400)
-        
-        # Set macOS style sheet
-        self.setStyleSheet("""
-            QDialog {
-                background-color: #f5f5f7;
-            }
-            QLabel {
-                font-size: 13px;
-            }
-            QPushButton {
-                background-color: #0071e3;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                padding: 8px 16px;
-                font-size: 13px;
-            }
-            QPushButton:hover {
-                background-color: #0077ed;
-            }
-            QPushButton:pressed {
-                background-color: #0068d1;
-            }
-            QPushButton#cancelButton {
-                background-color: #e2e2e7;
-                color: #1d1d1f;
-            }
-            QPushButton#cancelButton:hover {
-                background-color: #d9d9de;
-            }
-        """)
-        
-        layout = QVBoxLayout()
-        
-        # Warning message
-        warning_label = QLabel(f"Are you sure you want to uninstall {app_name}?")
-        warning_label.setStyleSheet("font-weight: bold; font-size: 15px; color: #1d1d1f;")
-        layout.addWidget(warning_label)
-        
-        info_label = QLabel("The following files will be removed:")
-        layout.addWidget(info_label)
-        
-        # File list with checkboxes
-        self.file_list = QWidget()
-        file_layout = QVBoxLayout(self.file_list)
-        file_layout.setContentsMargins(0, 0, 0, 0)
-        
-        self.file_checkboxes = []
-        for file_path in related_files:
-            checkbox = QCheckBox(file_path)
-            checkbox.setChecked(True)
-            self.file_checkboxes.append(checkbox)
-            file_layout.addWidget(checkbox)
-        
-        # Add scrollable area for files
-        scroll_area = QTextEdit()
-        scroll_area.setReadOnly(True)
-        scroll_area.setText("\n".join(related_files))
-        layout.addWidget(scroll_area)
-        
-        # Buttons
-        button_layout = QHBoxLayout()
-        
-        self.cancel_button = QPushButton("Cancel")
-        self.cancel_button.setObjectName("cancelButton")
-        self.cancel_button.clicked.connect(self.reject)
-        
-        self.uninstall_button = QPushButton("Uninstall")
-        self.uninstall_button.clicked.connect(self.accept)
-        
-        button_layout.addWidget(self.cancel_button)
-        button_layout.addWidget(self.uninstall_button)
-        
-        layout.addLayout(button_layout)
-        self.setLayout(layout)
-    
-    def get_selected_files(self):
-        return [cb.text() for cb in self.file_checkboxes if cb.isChecked()]
-
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -158,6 +73,7 @@ class MainWindow(QMainWindow):
         # Set window properties
         self.setWindowTitle("Mac Apps Uninstaller")
         self.setMinimumSize(800, 600)
+        self.resize(1000, 600)  # Default window size: 1000px width
         
         # Create menu bar
         self.create_menu_bar()
@@ -264,18 +180,20 @@ class MainWindow(QMainWindow):
         # Button to find related files
         self.find_files_button = QPushButton("Find Related Files")
         self.find_files_button.setEnabled(False)
+        self.find_files_button.hide()  # Hide until an app is selected
         self.find_files_button.clicked.connect(self.find_related_files)
         right_layout.addWidget(self.find_files_button)
         
         self.uninstall_button = QPushButton("Uninstall")
         self.uninstall_button.setEnabled(False)
+        self.uninstall_button.hide()  # Hide until related files are found
         self.uninstall_button.clicked.connect(self.uninstall_app)
         right_layout.addWidget(self.uninstall_button)
         
         # Add panels to splitter
         splitter.addWidget(left_panel)
         splitter.addWidget(right_panel)
-        splitter.setSizes([300, 500])
+        splitter.setSizes([300, 700])
         
         main_layout.addWidget(splitter)
         self.setCentralWidget(central_widget)
@@ -369,6 +287,9 @@ class MainWindow(QMainWindow):
         self.details_title.setText("Select an application")
         self.app_details.setText("")
         self.uninstall_button.setEnabled(False)
+        self.uninstall_button.hide()  # Hide when refreshing app list
+        self.find_files_button.setEnabled(False)
+        self.find_files_button.hide()  # Hide when refreshing app list
         
         # Start loading apps again
         self.load_apps()
@@ -394,7 +315,9 @@ class MainWindow(QMainWindow):
         )
     
     def populate_app_list(self):
-        for app in self.apps.list():
+        # Sort apps alphabetically by name
+        sorted_apps = sorted(self.apps.list(), key=lambda app: app.name.lower())
+        for app in sorted_apps:
             item = QListWidgetItem(app.name)
             item.setData(Qt.UserRole, app)
             self.app_list.addItem(item)
@@ -402,7 +325,9 @@ class MainWindow(QMainWindow):
     def on_app_selected(self, current, previous):
         if current is None:
             self.uninstall_button.setEnabled(False)
+            self.uninstall_button.hide()  # Hide when no app selected
             self.find_files_button.setEnabled(False)
+            self.find_files_button.hide()  # Hide when no app selected
             self.details_title.setText("Select an application")
             self.app_details.setText("")
             self.selected_app = None
@@ -418,11 +343,13 @@ class MainWindow(QMainWindow):
         details += "Click 'Find Related Files' to search for files related to this application."
         self.app_details.setText(details)
         
-        # Enable the find files button
+        # Show and enable the find files button
         self.find_files_button.setEnabled(True)
+        self.find_files_button.show()
         
-        # Disable uninstall button until files are found
+        # Hide uninstall button until files are found
         self.uninstall_button.setEnabled(False)
+        self.uninstall_button.hide()
         
     def find_related_files(self):
         """Start the search for files related to the selected application"""
@@ -467,12 +394,13 @@ class MainWindow(QMainWindow):
         
         self.app_details.setText(details)
         self.uninstall_button.setEnabled(True)
+        self.uninstall_button.show()  # Show button when files are found
         
         # Hide progress bar
         self.file_loading_progress.hide()
         
-        # Re-enable the find files button
-        self.find_files_button.setEnabled(True)
+        # Hide the find files button since files are already found
+        self.find_files_button.hide()
     
     def on_file_lookup_error(self, error_msg):
         """Handler for when file lookup fails"""
@@ -486,6 +414,7 @@ class MainWindow(QMainWindow):
             self.app_details.setText(f"Error finding related files:\n{error_msg}")
             
         self.uninstall_button.setEnabled(False)
+        self.uninstall_button.hide()  # Hide when file lookup fails
         
         # Re-enable the find files button to allow retrying
         self.find_files_button.setEnabled(True)
@@ -494,35 +423,33 @@ class MainWindow(QMainWindow):
         if self.selected_app is None:
             return
         
-        dialog = UninstallDialog(self.selected_app.name, self.selected_app.related_files, self)
-        # In PySide6, exec_() was renamed to exec()
-        if hasattr(dialog, 'exec'):
-            result = dialog.exec()
-        else:
-            result = dialog.exec_()
+        # Show single confirmation dialog
+        confirm = QMessageBox.question(
+            self,
+            "Confirm Uninstall",
+            f"Are you sure you want to uninstall {self.selected_app.name}?\n\n"
+            "This action cannot be undone.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
         
-        if result == QDialog.Accepted:
-            # Show confirmation dialog
-            confirm = QMessageBox.question(
-                self,
-                "Confirm Uninstall",
-                f"Are you sure you want to uninstall {self.selected_app.name}?\n\n"
-                "This action cannot be undone.",
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No
-            )
-            
-            if confirm == QMessageBox.Yes:
-                # Execute the actual file removal
-                self.execute_uninstall(self.selected_app.related_files)
+        if confirm == QMessageBox.Yes:
+            # Execute the actual file removal
+            self.execute_uninstall(self.selected_app.related_files)
     
     def execute_uninstall(self, file_paths):
         """Execute the uninstall by removing files with rm -rf command"""
+        # Update details panel to show uninstall progress
+        self.app_details.setText(f"Uninstalling {self.selected_app.name}...\n\nExecuting rm -rf commands:")
+        
         successfully_removed = []
         failed_removals = []
+        output_lines = [f"Uninstalling {self.selected_app.name}:", ""]
         
         for file_path in file_paths:
             try:
+                output_lines.append(f"Removing: {file_path}")
+                
                 # Use subprocess to execute rm -rf with quoted file paths
                 result = subprocess.run(['rm', '-rf', file_path], 
                                        capture_output=True, 
@@ -531,45 +458,49 @@ class MainWindow(QMainWindow):
                 
                 if result.returncode == 0:
                     successfully_removed.append(file_path)
+                    output_lines.append("✓ Successfully removed")
                 else:
                     failed_removals.append(file_path)
+                    output_lines.append("✗ Failed to remove (requires sudo)")
+                    if result.stderr:
+                        output_lines.append(f"Error: {result.stderr.strip()}")
+                
+                # Update display in real-time
+                self.app_details.setText("\n".join(output_lines))
+                # Force GUI update
+                QApplication.processEvents()
                     
             except Exception as e:
                 failed_removals.append(file_path)
+                output_lines.append(f"✗ Failed to remove: {str(e)}")
+                self.app_details.setText("\n".join(output_lines))
+                QApplication.processEvents()
         
-        # Show results to user
+        # Final summary
+        output_lines.append("")
+        output_lines.append("=" * 50)
+        output_lines.append("UNINSTALL SUMMARY")
+        output_lines.append("=" * 50)
+        
+        if successfully_removed:
+            output_lines.append(f"✓ Successfully removed {len(successfully_removed)} files")
+            
         if failed_removals:
-            # Create message with sudo commands for failed removals
-            message = "Uninstall completed with some files requiring manual removal.\n\n"
-            
-            if successfully_removed:
-                message += f"Successfully removed {len(successfully_removed)} files.\n\n"
-            
-            message += "The following files require administrator privileges to remove.\n"
-            message += "Copy and paste these commands into Terminal:\n\n"
+            output_lines.append(f"✗ {len(failed_removals)} files require manual removal")
+            output_lines.append("")
+            output_lines.append("Copy and paste these commands into Terminal:")
+            output_lines.append("")
             
             # Add commands without bullet points for easy copy-paste
             for file_path in failed_removals:
-                message += f'sudo rm -rf "{file_path}"\n'
-            
-            QMessageBox.warning(
-                self,
-                "Uninstall Partially Complete",
-                message
-            )
+                output_lines.append(f'sudo rm -rf "{file_path}"')
         else:
-            # All files removed successfully
-            message = f"Successfully uninstalled {self.selected_app.name}\n\n"
-            message += f"Removed {len(successfully_removed)} files."
-            
-            QMessageBox.information(
-                self,
-                "Uninstall Complete",
-                message
-            )
-            
+            output_lines.append("All files successfully removed!")
             # Refresh the app list to reflect changes
             self.refresh_app_list()
+        
+        # Show final output
+        self.app_details.setText("\n".join(output_lines))
 
 
 def main():

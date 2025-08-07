@@ -23,6 +23,9 @@ class AppRegistry:
             return None
 
         name = os.path.basename(app_path)
+        # Remove .app extension from displayed name
+        if name.endswith('.app'):
+            name = name[:-4]
         self.__apps.append(AppModel(name, identifier, app_path))
 
         return self
