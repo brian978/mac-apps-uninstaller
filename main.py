@@ -10,7 +10,14 @@ from PySide6.QtGui import QIcon, QFont, QAction  # QAction moved to QtGui in PyS
 from models.AppModel import AppModel
 from services.AppService import AppService
 from services.FileLookupService import FileLookupService
-from app_icon import create_app_icon
+
+# Try to import app_icon, but handle gracefully if it fails
+try:
+    from app_icon import create_app_icon
+    HAS_APP_ICON = True
+except ImportError:
+    HAS_APP_ICON = False
+    print("Warning: app_icon module not available, using default icon")
 
 
 class AppLoaderSignals(QObject):
@@ -517,34 +524,52 @@ class MainWindow(QMainWindow):
 
 
 def main():
-    # Enable macOS-specific features
-    if sys.platform == "darwin":
-        # Set the app ID
-        QApplication.setApplicationName("Mac Apps Uninstaller")
-        QApplication.setOrganizationName("Mac Apps Uninstaller")
-        QApplication.setOrganizationDomain("com.macappsuninstaller")
+    try:
+        # Enable macOS-specific features
+        if sys.platform == "darwin":
+            # Set the app ID
+            QApplication.setApplicationName("Mac Apps Uninstaller")
+            QApplication.setOrganizationName("Mac Apps Uninstaller")
+            QApplication.setOrganizationDomain("com.macappsuninstaller")
+            
+            # High DPI scaling is enabled by default in PySide6
         
-        # High DPI scaling is enabled by default in PySide6
-    
-    app = QApplication(sys.argv)
-    
-    # Create and set the app icon
-    app_icon = create_app_icon()
-    app.setWindowIcon(app_icon)
-    
-    # Set macOS dark mode support
-    if hasattr(app, 'setStyle'):
-        app.setStyle("macos")
-    
-    window = MainWindow()
-    window.setWindowIcon(app_icon)  # Also set the icon for the main window
-    window.show()
-    
-    # In PySide6, exec_() was renamed to exec()
-    if hasattr(app, 'exec'):
-        sys.exit(app.exec())
-    else:
-        sys.exit(app.exec_())
+        app = QApplication(sys.argv)
+        
+        # Create and set the app icon if available
+        if HAS_APP_ICON:
+            try:
+                app_icon = create_app_icon()
+                app.setWindowIcon(app_icon)
+            except Exception as e:
+                print(f"Warning: Could not create app icon: {e}")
+                app_icon = None
+        else:
+            app_icon = None
+        
+        # Set macOS dark mode support
+        if hasattr(app, 'setStyle'):
+            try:
+                app.setStyle("macos")
+            except Exception as e:
+                print(f"Warning: Could not set macOS style: {e}")
+        
+        window = MainWindow()
+        if app_icon is not None:
+            window.setWindowIcon(app_icon)  # Also set the icon for the main window
+        window.show()
+        
+        # In PySide6, exec_() was renamed to exec()
+        if hasattr(app, 'exec'):
+            sys.exit(app.exec())
+        else:
+            sys.exit(app.exec_())
+            
+    except Exception as e:
+        print(f"Error starting application: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
 
 if __name__ == "__main__":

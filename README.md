@@ -21,20 +21,45 @@ A native macOS application to make uninstalling apps on Mac easier without requi
 
 ## Installation
 
+### Option 1: Download the pre-built application (Recommended)
+
+1. Download the latest release from the [Releases](https://github.com/yourusername/mac-apps-uninstaller/releases) page.
+2. Extract the zip file.
+3. Drag the Mac Apps Uninstaller.app to your Applications folder.
+
+### Option 2: Build from source
+
 1. Clone the repository:
 ```
 git clone https://github.com/yourusername/mac-apps-uninstaller.git
 cd mac-apps-uninstaller
 ```
 
-2. Install the required dependencies:
+2. Install the required dependencies and build the application:
 ```
-pip install -r requirements.txt
+make install
+make build
 ```
+
+3. The built application will be available in the `dist` folder.
 
 ## Usage
 
-Run the application:
+### Using the .app application (Recommended)
+
+1. Double-click the Mac Apps Uninstaller.app in your Applications folder.
+2. For full functionality (to access system files), right-click the app and select "Open" to bypass Gatekeeper.
+
+### Running from source
+
+If you prefer to run the application from source:
+
+```
+make
+```
+
+Or manually:
+
 ```
 python main.py
 ```
@@ -42,6 +67,30 @@ python main.py
 For full functionality (to access system files), you may need to run with sudo:
 ```
 sudo python main.py
+```
+
+## Building the Application
+
+To build the standalone macOS application:
+
+```
+make build
+```
+
+This will create a standalone .app bundle in the `dist` directory that can be distributed and run without requiring Python or any dependencies to be installed.
+
+For development and testing, you can use:
+
+```
+make dev-build
+```
+
+This creates a development build that's faster to compile but still requires the Python environment.
+
+To see all available build options:
+
+```
+make help
 ```
 
 ## How It Works
