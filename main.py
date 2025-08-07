@@ -1,5 +1,6 @@
 import sys
 import os
+import subprocess
 from PySide6.QtWidgets import (QApplication, QMainWindow, QListWidget, QListWidgetItem, 
                               QVBoxLayout, QHBoxLayout, QWidget, QLabel, QPushButton, 
                               QMessageBox, QTextEdit, QSplitter, QDialog, QCheckBox,
@@ -512,15 +513,63 @@ class MainWindow(QMainWindow):
             )
             
             if confirm == QMessageBox.Yes:
-                # In a real implementation, we would execute the removal commands here
-                # For safety, we'll just show what would be removed
-                QMessageBox.information(
-                    self,
-                    "Uninstall Simulation",
-                    f"The following files would be removed:\n\n"
-                    f"{chr(10).join(self.selected_app.related_files)}\n\n"
-                    "For safety, no files were actually removed in this demo."
-                )
+                # Execute the actual file removal
+                self.execute_uninstall(self.selected_app.related_files)
+    
+    def execute_uninstall(self, file_paths):
+        """Execute the uninstall by removing files with rm -rf command"""
+        successfully_removed = []
+        failed_removals = []
+        
+        for file_path in file_paths:
+            try:
+                # Use subprocess to execute rm -rf with quoted file paths
+                result = subprocess.run(['rm', '-rf', file_path], 
+                                       capture_output=True, 
+                                       text=True, 
+                                       check=False)
+                
+                if result.returncode == 0:
+                    successfully_removed.append(file_path)
+                else:
+                    failed_removals.append(file_path)
+                    
+            except Exception as e:
+                failed_removals.append(file_path)
+        
+        # Show results to user
+        if failed_removals:
+            # Create message with sudo commands for failed removals
+            message = "Uninstall completed with some files requiring manual removal.\n\n"
+            
+            if successfully_removed:
+                message += f"Successfully removed {len(successfully_removed)} files.\n\n"
+            
+            message += "The following files require administrator privileges to remove.\n"
+            message += "Copy and paste these commands into Terminal:\n\n"
+            
+            # Add commands without bullet points for easy copy-paste
+            for file_path in failed_removals:
+                message += f'sudo rm -rf "{file_path}"\n'
+            
+            QMessageBox.warning(
+                self,
+                "Uninstall Partially Complete",
+                message
+            )
+        else:
+            # All files removed successfully
+            message = f"Successfully uninstalled {self.selected_app.name}\n\n"
+            message += f"Removed {len(successfully_removed)} files."
+            
+            QMessageBox.information(
+                self,
+                "Uninstall Complete",
+                message
+            )
+            
+            # Refresh the app list to reflect changes
+            self.refresh_app_list()
 
 
 def main():
