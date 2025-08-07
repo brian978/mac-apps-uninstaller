@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  release:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+        
+    - name: Extract tag name
+      id: tag
+      run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+    - name: Install dependencies and build
+      run: |
+        make install
+        make build
+        
+    - name: Rename app with tag
+      run: |
+        cd dist
+        mv "Mac Apps Uninstaller.app" "MacAppUninstaller_${{ steps.tag.outputs.TAG_NAME }}.app"
+        
+    - name: Create ZIP archive
+      run: |
+        cd dist
+        zip -r "MacAppUninstaller_${{ steps.tag.outputs.TAG_NAME }}.zip" "MacAppUninstaller_${{ steps.tag.outputs.TAG_NAME }}.app"
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.tag.outputs.TAG_NAME }}
+        name: Release ${{ steps.tag.outputs.TAG_NAME }}
+        draft: false
+        prerelease: false
+        files: |
+          dist/MacAppUninstaller_${{ steps.tag.outputs.TAG_NAME }}.zip
+        body: |
+          ## Mac Apps Uninstaller ${{ steps.tag.outputs.TAG_NAME }}
+          
+          ### Installation
+          1. Download the ZIP file below
+          2. Extract the app
+          3. Move MacAppUninstaller_${{ steps.tag.outputs.TAG_NAME }}.app to your Applications folder
+          4. Run the app (you may need to allow some permissions)
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
