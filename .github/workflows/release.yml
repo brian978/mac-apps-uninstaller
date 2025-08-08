@@ -1,0 +1,68 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  release:
+    runs-on: macos-latest
+    env:
+      # We intentionally use Python 3.11 for packaging stability:
+      # - py2app and PySide6 have tighter compatibility with 3.11 at this time
+      # - Newer Pythons (e.g., 3.13) have produced broken bundles reported by macOS as "damaged"
+      # Bump this once upstream tooling fully supports newer versions.
+      PYTHON_VERSION: '3.11'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Extract tag name
+      id: tag
+      run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+    - name: Install dependencies and build
+      env:
+        CI: true
+      run: |
+        make install
+        # Use environment variable to ensure ad-hoc code signing is applied
+        CODESIGN_IDENTITY="-" make build
+        
+    - name: Ensure ad-hoc code signing on built app
+      run: |
+        # Apply proper ad-hoc signing to the built app bundle
+        codesign --force --deep --sign - "dist/MacAppUninstaller.app"
+        codesign --verify --deep --strict --verbose=2 "dist/MacAppUninstaller.app"
+        
+    - name: Create ZIP archive
+      run: |
+        cd dist
+        zip -r "MacAppUninstaller_${{ steps.tag.outputs.TAG_NAME }}.zip" "MacAppUninstaller.app"
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.tag.outputs.TAG_NAME }}
+        name: Release ${{ steps.tag.outputs.TAG_NAME }}
+        draft: false
+        prerelease: false
+        files: |
+          dist/MacAppUninstaller_${{ steps.tag.outputs.TAG_NAME }}.zip
+        body: |
+          ## Mac Apps Uninstaller ${{ steps.tag.outputs.TAG_NAME }}
+          
+          ### Installation
+          1. Download the ZIP file below
+          2. Extract the app
+          3. Move "MacAppUninstaller.app" to your Applications folder
+          4. Run the app (you may need to allow some permissions)
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
